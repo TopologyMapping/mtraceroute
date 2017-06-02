@@ -51,9 +51,9 @@
 #include "mt_mda.h"
 
 #define MDA_ICMP_ID       0xffff
-#define MDA_UDP_SPORT     15000
-#define MDA_UDP_DPORT     53
-#define MDA_TCP_SPORT     15000
+#define MDA_UDP_SPORT     53433
+#define MDA_UDP_DPORT     33435
+#define MDA_TCP_SPORT     53433
 #define MDA_TCP_DPORT     80
 #define MDA_MIN_FLOW_ID   1
 #define MDA_MAX_FLOW_ID   255
@@ -63,7 +63,31 @@ struct flow_ttl {
     uint8_t ttl;
     uint16_t flow_id;
     char *response;
+    int response_type;
 };
+
+struct next_hop {
+    char *addr;
+    struct timeval rtt;
+};
+
+static struct next_hop *next_hop_create(char *addr, struct timeval rtt) {
+    struct next_hop *nh = malloc(sizeof(*nh));
+    memset(nh, 0, sizeof(*nh));
+    nh->addr = addr;
+    nh->rtt = rtt;
+    return nh;
+}
+
+static int next_hop_cmp(const void *a, const void *b) {
+    struct next_hop *nh1 = (struct next_hop *)a;
+    struct next_hop *nh2 = (struct next_hop *)b;
+    return strcmp(nh1->addr, nh2->addr);
+}
+
+static void next_hop_destroy(struct next_hop *nh) {
+    free(nh);
+}
 
 struct mda {
     char *root;
@@ -75,24 +99,22 @@ struct mda {
     struct dst *dst;
 };
 
-struct mda *mda_create(struct mt *a, struct dst *d, int flow_type,
-                       int confidence, int max_ttl) {
+static struct mda *mda_create(struct mt *a, struct dst *d, int flow_type,
+                              int confidence, int max_ttl) {
     struct mda *mda = malloc(sizeof(*mda));
     if (mda == NULL) return NULL;
     memset(mda, 0, sizeof(*mda));
-
     mda->root       = strdup("root");
     mda->confidence = confidence;
     mda->max_ttl    = max_ttl;
     mda->flow_type  = flow_type;
     mda->flow_list  = list_create();
-    mda->mt       = a;
+    mda->mt         = a;
     mda->dst        = d;
-
     return mda;
 }
 
-void mda_destroy(struct mda *mda) {
+static void mda_destroy(struct mda *mda) {
     while (mda->flow_list->count > 0) {
         struct flow_ttl *f = (struct flow_ttl *)list_pop(mda->flow_list);
         free(f->response);
@@ -103,7 +125,7 @@ void mda_destroy(struct mda *mda) {
     free(mda);
 }
 
-struct addr *flow_id_to_addr(struct addr *a, int flow_id) {
+static struct addr *flow_id_to_addr(struct addr *a, int flow_id) {
     int size = 0;
     if (a->type == ADDR_IPV4) {
         size = 4;
@@ -117,7 +139,7 @@ struct addr *flow_id_to_addr(struct addr *a, int flow_id) {
     return new;
 }
 
-int get_flow_id_from_addr(uint8_t *addr, int addr_type) {
+static int get_flow_id_from_addr(uint8_t *addr, int addr_type) {
     int flow_id = -1;
     int size = 0;
     if (addr_type == ADDR_IPV4) flow_id = addr[3];
@@ -125,7 +147,8 @@ int get_flow_id_from_addr(uint8_t *addr, int addr_type) {
     return flow_id;
 }
 
-void mda_send(struct mda *m, uint16_t flow_id, uint16_t probe_id, uint8_t ttl) {
+static void mda_send(struct mda *m, uint16_t flow_id,
+                     uint16_t probe_id, uint8_t ttl) {
     struct packet *p = NULL;
 
     if (m->dst->ip_dst->type == ADDR_IPV4) {
@@ -279,21 +302,24 @@ void mda_send(struct mda *m, uint16_t flow_id, uint16_t probe_id, uint8_t ttl) {
     packet_destroy(p);
 }
 
-struct flow_ttl *flow_ttl_create(int ttl, uint16_t flow_id, char *resp) {
+static struct flow_ttl *flow_ttl_create(int ttl, uint16_t flow_id,
+                                        char *resp, int type) {
     struct flow_ttl *ft = malloc(sizeof(*ft));
     if (ft == NULL) return NULL;
-    ft->ttl      = ttl;
-    ft->flow_id  = flow_id;
-    ft->response = strdup(resp);
+    ft->ttl           = ttl;
+    ft->flow_id       = flow_id;
+    ft->response      = strdup(resp);
+    ft->response_type = type;
     return ft;
 }
 
-void add_flow(struct mda *mda, int ttl, uint16_t flow_id, char *resp) {
-    struct flow_ttl *ft = flow_ttl_create(ttl, flow_id, resp);
+static void add_flow(struct mda *mda, int ttl, uint16_t flow_id,
+                     char *resp, int type) {
+    struct flow_ttl *ft = flow_ttl_create(ttl, flow_id, resp, type);
     list_insert(mda->flow_list, ft);
 }
 
-int has_flow_id(struct mda *mda, int ttl, uint16_t flow_id) {
+static int has_flow_id(struct mda *mda, int ttl, uint16_t flow_id) {
     struct list_item *it = NULL;
     for (it = mda->flow_list->first; it != NULL; it = it->next) {
         struct flow_ttl *f = (struct flow_ttl *)it->data;
@@ -302,7 +328,7 @@ int has_flow_id(struct mda *mda, int ttl, uint16_t flow_id) {
     return 0;
 }
 
-int get_nth_flow_id_available(struct mda *mda, int n, int ttl) {
+static int get_nth_flow_id_available(struct mda *mda, int n, int ttl) {
     int nth = 0;
     int flow_id = 0;
     for (flow_id = MDA_MIN_FLOW_ID; flow_id <= MDA_MAX_FLOW_ID; flow_id++) {
@@ -312,7 +338,7 @@ int get_nth_flow_id_available(struct mda *mda, int n, int ttl) {
     return -1;
 }
 
-struct list *get_interfaces_ttl(struct mda *mda, int ttl) {
+static struct list *get_interfaces_ttl(struct mda *mda, int ttl) {
     struct list *i = list_create();
     struct list_item *it = NULL;
     for (it = mda->flow_list->first; it != NULL; it = it->next) {
@@ -324,7 +350,24 @@ struct list *get_interfaces_ttl(struct mda *mda, int ttl) {
     return i;
 }
 
-struct list *get_flows(struct mda *mda, int ttl, char *resp) {
+static struct list *get_flows_ttl(struct mda *mda, int ttl) {
+    struct list *i = list_create();
+    struct list_item *it = NULL;
+    struct list *addrs = list_create();
+
+    for (it = mda->flow_list->first; it != NULL; it = it->next) {
+        struct flow_ttl *f = (struct flow_ttl *)it->data;
+        if (f->ttl == ttl && list_find(addrs, f->response, &strcmp_void) == NULL) {
+            list_insert(i, f);
+            list_insert(addrs, f->response);
+        }
+    }
+
+    list_destroy(addrs);
+    return i;
+}
+
+static struct list *get_flows(struct mda *mda, int ttl, char *resp) {
     struct list *i = list_create();
     struct list_item *it = NULL;
     for (it = mda->flow_list->first; it != NULL; it = it->next) {
@@ -336,8 +379,8 @@ struct list *get_flows(struct mda *mda, int ttl, char *resp) {
     return i;
 }
 
-char *mda_read_response(struct mda *m, struct probe *p) {
-    char *src_addr = NULL;
+static void mda_read_response(struct mda *m, struct probe *p, char **src_addr,
+                              struct timeval *rtt) {
 
     int ttl = 0;
     int flow_id = 0;
@@ -373,11 +416,21 @@ char *mda_read_response(struct mda *m, struct probe *p) {
 
         if (p->response_len > 0) {
             struct ipv4_hdr *rip = (struct ipv4_hdr *)(p->response + ETH_H_SIZE);
-            src_addr = addr_bytes_to_str(ADDR_IPV4, (uint8_t *)&rip->src_addr);
-            add_flow(m, ttl, flow_id, src_addr);
+            *src_addr = addr_bytes_to_str(ADDR_IPV4, (uint8_t *)&rip->src_addr);
+
+            int type = -1;
+            if (rip->protocol == PROTO_ICMPV4) {
+                type = get_icmp4_type(p->response);
+            }
+            add_flow(m, ttl, flow_id, *src_addr, type);
+
+            if (rtt != NULL) {
+                *rtt = timeval_diff(&p->response_time, &p->sent_time);
+            }
+
         } else {
-            src_addr = strdup("*");
-            add_flow(m, ttl, flow_id, src_addr);
+            *src_addr = strdup("*");
+            add_flow(m, ttl, flow_id, *src_addr, -1);
         }
 
     } else if (m->dst->ip_dst->type == ADDR_IPV6) {
@@ -421,19 +474,28 @@ char *mda_read_response(struct mda *m, struct probe *p) {
 
         if (p->response_len > 0) {
             struct ipv6_hdr *rip = (struct ipv6_hdr *)(p->response + ETH_H_SIZE);
-            src_addr = addr_bytes_to_str(ADDR_IPV6, (uint8_t *)&rip->src_addr);
-            add_flow(m, ttl, flow_id, src_addr);
+            *src_addr = addr_bytes_to_str(ADDR_IPV6, (uint8_t *)&rip->src_addr);
+
+            int type = -1;
+            if (rip->next_header == PROTO_ICMPV6) {
+                type = get_icmp6_type(p->response);
+            }
+            add_flow(m, ttl, flow_id, *src_addr, type);
+
+            if (rtt != NULL) {
+                *rtt = timeval_diff(&p->response_time, &p->sent_time);
+            }
+
         } else {
-            src_addr = strdup("*");
-            add_flow(m, ttl, flow_id, src_addr);
+            *src_addr = strdup("*");
+            add_flow(m, ttl, flow_id, *src_addr, -1);
         }
 
     }
 
-    return src_addr;
 }
 
-int is_per_packet(struct mda *mda, int flow_id, int ttl, int n) {
+static int is_per_packet(struct mda *mda, int flow_id, int ttl, int n) {
     int i = 0;
     for (i = 0; i < n; i++) {
         mda_send(mda, flow_id, i + 1, ttl + 1);
@@ -447,7 +509,8 @@ int is_per_packet(struct mda *mda, int flow_id, int ttl, int n) {
     int found = 0;
     while (inter->probes->count > 0) {
         struct probe *probe = (struct probe *)list_pop(inter->probes);
-        char *addr = mda_read_response(mda, probe);
+        char *addr = NULL;
+        mda_read_response(mda, probe, &addr, NULL);
         if (strcmp(addr, "*") != 0 && list_find(nh, addr, &strcmp_void) == NULL) {
             list_insert(nh, addr);
             found++;
@@ -460,8 +523,8 @@ int is_per_packet(struct mda *mda, int flow_id, int ttl, int n) {
     return found;
 }
 
-int next_hops(struct mda *mda, char *addr, int ttl,
-              struct list *flows, int n, int *flows_sent, struct list *nh) {
+static int next_hops(struct mda *mda, char *addr, int ttl, struct list *flows,
+                     int n, int *flows_sent, struct list *nh_list) {
 
     int sent = 0;
     int sent_new = 0;
@@ -486,19 +549,25 @@ int next_hops(struct mda *mda, char *addr, int ttl,
     int found = 0;
     while (inter->probes->count > 0) {
         struct probe *probe = (struct probe *)list_pop(inter->probes);
-        char *addr = mda_read_response(mda, probe);
-        if (list_find(nh, addr, &strcmp_void) == NULL) {
-            list_insert(nh, addr);
+        char *addr = NULL;
+        struct timeval rtt;
+        mda_read_response(mda, probe, &addr, &rtt);
+        struct next_hop *nh = next_hop_create(addr, rtt);
+
+        if (list_find(nh_list, nh, &next_hop_cmp) == NULL) {
+            list_insert(nh_list, nh);
             found++;
         } else {
             free(addr);
+            next_hop_destroy(nh);
         }
+
         probe_destroy(probe);
     }
     return found;
 }
 
-void more_flows(struct mda *mda, char *addr, int ttl, int n) {
+static void more_flows(struct mda *mda, char *addr, int ttl, int n) {
     if (ttl == 0) {
         int found = 0;
         int stop = 0;
@@ -509,7 +578,7 @@ void more_flows(struct mda *mda, char *addr, int ttl, int n) {
                 stop = 1;
                 break;
             }
-            add_flow(mda, ttl, flow_id, addr);
+            add_flow(mda, ttl, flow_id, addr, -1);
             found++;
             i++;
         }
@@ -536,7 +605,8 @@ void more_flows(struct mda *mda, char *addr, int ttl, int n) {
         struct interface *inter = mt_get_interface(mda->mt, mda->dst->if_index);
         while (inter->probes->count > 0) {
             struct probe *probe = (struct probe *)list_pop(inter->probes);
-            char *resp = mda_read_response(mda, probe);
+            char *resp = NULL;
+            mda_read_response(mda, probe, &resp, NULL);
             if (strcmp(resp, addr) == 0) found++;
             free(resp);
             probe_destroy(probe);
@@ -544,7 +614,7 @@ void more_flows(struct mda *mda, char *addr, int ttl, int n) {
     }
 }
 
-void mda_print(int ttl, char *addr, struct list *nh, int per_packet) {
+static void mda_print(int ttl, char *addr, struct list *nh, int per_packet) {
     if (per_packet == 1) {
         printf("%2d  %s (P): ", ttl, addr);
     } else {
@@ -552,13 +622,19 @@ void mda_print(int ttl, char *addr, struct list *nh, int per_packet) {
     }
     struct list_item *i = NULL;
     for (i = nh->first; i != NULL; i = i->next) {
-        char *a = (char *)i->data;
-        printf(" %s", a);
+        struct next_hop *nh = (struct next_hop *)i->data;
+        char *rtt_str = timeval_to_str(&nh->rtt);
+        if (strcmp(nh->addr, "*") == 0) {
+            printf(" *");
+        } else {
+            printf(" %s (%s ms)", nh->addr, rtt_str);
+        }        
+        free(rtt_str);
     }
     printf("\n");
 }
 
-int mda(struct mda *mda) {
+static int mda(struct mda *mda) {
     int k[][3] = {
         {   0,    0,    0}, {   1,    1,    1}, {   5,    6,    8},
         {   9,   11,   15}, {  13,   16,   21}, {  18,   21,   28},
@@ -609,15 +685,16 @@ int mda(struct mda *mda) {
     int n = k[2][mda->confidence];
     int i = 0;
     for (i = 0; i < n; i++) {
-        add_flow(mda, 0, MDA_MIN_FLOW_ID + i, mda->root);
+        add_flow(mda, 0, MDA_MIN_FLOW_ID + i, mda->root, -1);
     }
 
     int ttl = 0;
     for (ttl = 0; ttl <= mda->max_ttl; ttl++) {
-        struct list *interfaces_addrs = get_interfaces_ttl(mda, ttl);
+        struct list *addrs_ttl = get_flows_ttl(mda, ttl);
 
-        while (interfaces_addrs->count > 0) {
-            char *addr = (char *)list_pop(interfaces_addrs);
+        while (addrs_ttl->count > 0) {
+            struct flow_ttl *fttl = (struct flow_ttl *)list_pop(addrs_ttl);
+            char *addr = fttl->response;
 
             char *addr_dst = addr_to_str(mda->dst->ip_dst);
             if (strcmp(addr, addr_dst) == 0) {
@@ -625,6 +702,15 @@ int mda(struct mda *mda) {
                 continue;
             }
             free(addr_dst);
+
+            if (mda->dst->ip_dst->type == ADDR_IPV4 &&
+                fttl->response_type == ICMPV4_TYPE_UNREACH) {
+                continue;
+            }
+            else if (mda->dst->ip_dst->type == ADDR_IPV6 &&
+                fttl->response_type == ICMPV6_TYPE_UNREACH) {
+                continue;
+            }            
             
             struct list *nh_list = list_create();
             int flows_sent = 0;
@@ -650,26 +736,26 @@ int mda(struct mda *mda) {
             }
 
             int per_packet = 0;
-            // if (nh_list->count > 1) {
-            //     // try to classify as per-packet
-            //     struct list *flows = get_flows(mda, ttl, addr);
-            //     struct flow_ttl *f = (struct flow_ttl *)list_pop(flows);
-            //     n = k[2][mda->confidence];
-            //     int result = is_per_packet(mda, f->flow_id, ttl, n);
-            //     if (result > 1) per_packet = 1;
-            //     list_destroy(flows);
-            // }
+            if (nh_list->count > 1) {
+                struct list *flows = get_flows(mda, ttl, addr);
+                struct flow_ttl *f = (struct flow_ttl *)list_pop(flows);
+                n = k[2][mda->confidence];
+                int result = is_per_packet(mda, f->flow_id, ttl, n);
+                if (result > 1) per_packet = 1;
+                list_destroy(flows);
+            }
 
             mda_print(ttl, addr, nh_list, per_packet);
 
             while (nh_list->count > 0) {
-                char *a = (char *)list_pop(nh_list);
-                free(a);
+                struct next_hop *nh = (struct next_hop *)list_pop(nh_list);
+                free(nh->addr);
+                next_hop_destroy(nh);
             }
             list_destroy(nh_list);
         }
 
-        list_destroy(interfaces_addrs);
+        list_destroy(addrs_ttl);
     }
 
     return 0;
