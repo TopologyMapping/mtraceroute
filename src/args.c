@@ -159,8 +159,8 @@ struct args *get_args(int argc, char **argv) {
     args->m = METHOD_ICMP;
     args->n = 5;
     args->p = 3;
-    args->r = 0;
-    args->w = 3;
+    args->r = 2;
+    args->w = 5;
     args->z = 20;
 
     struct xoption opts[] = {
