@@ -30,8 +30,7 @@
 #include <string.h>
 #include "probe.h"
 
-struct probe *probe_create(const uint8_t *probe, uint32_t probe_len,
-                           match_fn fn) {
+struct probe *probe_create(const uint8_t *probe, uint32_t probe_len, match_fn fn) {
     struct probe *p = malloc(sizeof(*p));
     if (p == NULL) return p;
     memset(p, 0, sizeof(*p));
@@ -43,6 +42,7 @@ struct probe *probe_create(const uint8_t *probe, uint32_t probe_len,
     }
     memcpy(buf, probe, probe_len);
     
+    p->retries   = 0;
     p->fn        = fn;
     p->probe     = buf;
     p->probe_len = probe_len;

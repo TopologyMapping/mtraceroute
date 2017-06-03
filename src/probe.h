@@ -35,6 +35,8 @@
 typedef int (*match_fn)(const uint8_t *, uint32_t, const uint8_t *, uint32_t);
 
 struct probe {
+    int if_index;
+    int retries;
     struct timeval sent_time;
     struct timeval response_time;
     uint8_t *probe;
@@ -44,8 +46,7 @@ struct probe {
     match_fn fn;
 };
 
-struct probe *probe_create(const uint8_t *probe, uint32_t probe_len,
-                           match_fn fn);
+struct probe *probe_create(const uint8_t *probe, uint32_t probe_len, match_fn fn);
 
 void probe_destroy(struct probe *p);
 
