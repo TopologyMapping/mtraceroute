@@ -46,8 +46,9 @@ struct mt {
     struct list *neighbors;
     struct list *routes;
 
+    int retries;
     int probe_timeout;
-    struct timeval probe_sleep_ms;
+    struct timeval send_wait;
 
     // Statistics
     int probes_count;

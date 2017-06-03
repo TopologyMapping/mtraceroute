@@ -48,8 +48,7 @@
 #define MT_TRACEROUTE 3
 
 struct probe *mt_send(struct mt *a, int if_index, const uint8_t *buf,
-                        uint32_t len, match_fn fn) {
-
+                      uint32_t len, match_fn fn) {
     struct interface *i = mt_get_interface(a, if_index);
     struct probe *p = probe_create(buf, len, fn);
     link_write(i->link, p->probe, p->probe_len, &(p->sent_time));
@@ -57,8 +56,8 @@ struct probe *mt_send(struct mt *a, int if_index, const uint8_t *buf,
 
     if (a->probes_count > 0) {
         struct timeval elapsed = timeval_diff_now(&a->last_probe_time);
-        if (timeval_cmp(&elapsed, &a->probe_sleep_ms) == -1) {
-            struct timeval remaining = timeval_diff(&a->probe_sleep_ms, &elapsed);
+        if (timeval_cmp(&elapsed, &a->send_wait) == -1) {
+            struct timeval remaining = timeval_diff(&a->send_wait, &elapsed);
             usleep(timeval_to_ms(&remaining) * 1000);
         }
     }
@@ -71,8 +70,13 @@ struct probe *mt_send(struct mt *a, int if_index, const uint8_t *buf,
     return p;
 }
 
+static void mt_retry(struct mt *a, struct interface *i, struct probe *p) {
+    link_write(i->link, p->probe, p->probe_len, &(p->sent_time));
+    p->retries++;
+}
+
 static void mt_receive(struct interface *i, const uint8_t *buf,
-                         uint32_t len, struct timeval ts) {
+                       uint32_t len, struct timeval ts) {
     struct list_item *it;
     for (it = i->probes->first; it != NULL; it = it->next) {
         struct probe *p = (struct probe *)it->data;
@@ -82,20 +86,27 @@ static void mt_receive(struct interface *i, const uint8_t *buf,
     }
 }
 
-static int mt_has_unanswered_probe(const struct mt *a, const struct interface *i) {
+static int mt_unanswered_probes(struct mt *a, struct interface *i) {
     struct list_item *it;
+    int count = 0;
     for (it = i->probes->first; it != NULL; it = it->next) {
         struct probe *p = (struct probe *)it->data;
         if (p->fn == NULL) continue;
         if (p->response_len > 0) continue;
-        if (probe_timeout(p, a->probe_timeout) == 0) return 1;
+        if (probe_timeout(p, a->probe_timeout) == 0) {
+            count++;
+            continue;
+        }
+        if (p->retries == a->retries) continue;        
+        mt_retry(a, i, p);
+        count++;
     }
-    return 0;
+    return count;
 }
 
 void mt_wait(struct mt *a, int if_index) {
     struct interface *i = mt_get_interface(a, if_index);
-    while (mt_has_unanswered_probe(a, i)) {
+    while (mt_unanswered_probes(a, i) > 0) {
         struct pcap_pkthdr *header;
         const u_char *pkt_data;
         if (pcap_next_ex(i->pcap_handle, &header, &pkt_data) > 0) {
@@ -203,7 +214,7 @@ void neighbor_destroy(struct neighbor *n) {
     free(n);
 }
 
-static struct mt *mt_create(int wait, int send_wait) {
+static struct mt *mt_create(int wait, int send_wait, int retries) {
     struct mt *a = malloc(sizeof(*a));
     if (a == NULL) return NULL;
     memset(a, 0, sizeof(*a));
@@ -211,8 +222,9 @@ static struct mt *mt_create(int wait, int send_wait) {
     a->interfaces = list_create();
     a->neighbors = list_create();
     a->routes = list_create();
+    a->retries = retries;
     a->probe_timeout = wait;
-    a->probe_sleep_ms = timeval_from_ms(send_wait);
+    a->send_wait = timeval_from_ms(send_wait);
     a->probes_count = 0;
 
     gettimeofday(&a->init_time, NULL);
@@ -258,7 +270,7 @@ int main(int argc, char *argv[]) {
     struct args *args = get_args(argc, argv);
     if (args == NULL) return 1;
 
-    struct mt *a = mt_create(args->w, args->z);
+    struct mt *a = mt_create(args->w, args->z, args->r);
 
     struct dst *d = dst_create_from_str(a, args->dst);
 
