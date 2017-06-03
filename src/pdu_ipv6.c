@@ -106,7 +106,7 @@ struct ipv6_ph *pdu_ipv6_ph(const uint32_t *src_addr, const uint32_t *dst_addr,
     memset(ph, 0, sizeof(*ph));
     ph->length = length;
     ph->next_header = next_header;
-    memcpy(&ph->src_addr, src_addr, 4);
-    memcpy(&ph->dst_addr, dst_addr, 4);
+    memcpy(&ph->src_addr, src_addr, 16);
+    memcpy(&ph->dst_addr, dst_addr, 16);
     return ph;
 }
