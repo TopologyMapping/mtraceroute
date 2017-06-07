@@ -57,14 +57,14 @@ void probe_destroy(struct probe *p) {
 }
 
 int probe_timeout(const struct probe *p, int timeout) {
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
     if ((now.tv_sec - p->sent_time.tv_sec) >= timeout) return 1;
     return 0;
 }
 
 int probe_match(struct probe *p, const uint8_t *buf, uint32_t len,
-                const struct timeval *ts) {
+                const struct timespec *ts) {
     if (p->fn == NULL) return -1;
 
     if (p->fn(p->probe, p->probe_len, buf, len)) {

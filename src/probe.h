@@ -30,15 +30,15 @@
 #define __PROBE_H__
 
 #include <stdint.h>
-#include <sys/time.h>
+#include <time.h>
 
 typedef int (*match_fn)(const uint8_t *, uint32_t, const uint8_t *, uint32_t);
 
 struct probe {
     int if_index;
     int retries;
-    struct timeval sent_time;
-    struct timeval response_time;
+    struct timespec sent_time;
+    struct timespec response_time;
     uint8_t *probe;
     uint32_t probe_len;
     uint8_t *response;
@@ -53,6 +53,6 @@ void probe_destroy(struct probe *p);
 int probe_timeout(const struct probe *p, int timeout);
 
 int probe_match(struct probe *p, const uint8_t *buf, uint32_t len,
-                const struct timeval *ts);
+                const struct timespec *ts);
 
 #endif // __PROBE_H__

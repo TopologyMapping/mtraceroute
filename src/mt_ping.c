@@ -57,7 +57,7 @@ static void ping4_print(const struct probe *p) {
     }
 
     char *addr = get_ip4_src_addr(p->response);
-    char *time = timeval_diff_to_str(&p->response_time, &p->sent_time);
+    char *time = timespec_diff_to_str(&p->response_time, &p->sent_time);
     int ttl = get_ip4_ttl(p->probe);
     uint16_t seq_num = get_icmp4_seqnum(p->probe);
     printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%s ms\n", p->response_len,
@@ -73,11 +73,12 @@ static void ping6_print(const struct probe *p) {
     }
 
     char *addr = get_ip6_src_addr(p->response);
-    char *time = timeval_diff_to_str(&p->response_time, &p->sent_time);
+    char *time = timespec_diff_to_str(&p->response_time, &p->sent_time);
     int ttl = get_ip6_ttl(p->probe);
     uint16_t seq_num = get_icmp6_seqnum(p->probe);
     printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%s ms\n", p->response_len,
            addr, seq_num, ttl, time);
+
     free(addr);
     free(time);
 }

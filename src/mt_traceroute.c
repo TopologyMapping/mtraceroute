@@ -64,7 +64,7 @@ static void traceroute4_print(const struct probe *p) {
     }
 
     char *addr = get_ip4_src_addr(p->response);
-    char *time = timeval_diff_to_str(&p->response_time, &p->sent_time);
+    char *time = timespec_diff_to_str(&p->response_time, &p->sent_time);
     int ttl = get_ip4_ttl(p->probe);
     printf("%2d  %s  %s ms\n", ttl, addr, time);
     free(addr);
@@ -78,7 +78,7 @@ static void traceroute6_print(const struct probe *p) {
     }
 
     char *addr = get_ip6_src_addr(p->response);
-    char *time = timeval_diff_to_str(&p->response_time, &p->sent_time);
+    char *time = timespec_diff_to_str(&p->response_time, &p->sent_time);
     int ttl = get_ip6_ttl(p->probe);
     printf("%2d  %s  %s ms\n", ttl, addr, time);
     free(addr);

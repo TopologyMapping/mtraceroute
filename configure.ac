@@ -17,13 +17,11 @@ AC_CHECK_HEADERS([time.h pthread.h limits.h fcntl.h], [], [exit 1;])
 AC_CHECK_HEADERS([assert.h inttypes.h], [], [exit 1;])
 AC_CHECK_HEADERS([arpa/inet.h], [], [exit 1;])
 AC_CHECK_HEADERS([sys/resource.h], [], [exit 1;])
-AC_CHECK_HEADERS([sys/time.h], [], [exit 1;])
 AC_CHECK_HEADERS([asm/types.h], [], [exit 1;])
 AC_CHECK_HEADERS([linux/rtnetlink.h], [], [exit 1;])
 AC_CHECK_HEADERS([linux/netlink.h], [], [exit 1;])
 
 AC_CHECK_FUNCS([strchr strdup strerror], [], [exit 1;])
-AC_CHECK_FUNCS([gettimeofday gmtime_r], [], [exit 1;])
 AC_CHECK_FUNCS([memset], [], [exit 1;])
 
 AC_FUNC_MALLOC

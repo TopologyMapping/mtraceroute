@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include "util.h"
 
@@ -161,64 +160,57 @@ struct sockaddr *sockaddr_from_str(const char *addr, int family) {
     return sa;
 }
 
-struct timeval timeval_diff(const struct timeval *a, const struct timeval *b) {
-    struct timeval c;
+struct timespec timespec_diff(const struct timespec *a, const struct timespec *b) {
+    struct timespec c;
     c.tv_sec = a->tv_sec - b->tv_sec;
-    c.tv_usec = a->tv_usec - b->tv_usec;
-    if (c.tv_usec < 0) {
+    c.tv_nsec = a->tv_nsec - b->tv_nsec;
+    if (c.tv_nsec < 0) {
         c.tv_sec--;
-        c.tv_usec += 1000000;
+        c.tv_nsec += 1000000000;
     }
     return c;
 }
 
-struct timeval timeval_diff_now(const struct timeval *t) {
-    struct timeval a;
-    gettimeofday(&a, NULL);
-    return timeval_diff(&a, t);
+struct timespec timespec_diff_now(const struct timespec *t) {
+    struct timespec a;
+    clock_gettime(CLOCK_REALTIME, &a);
+    return timespec_diff(&a, t);
 }
 
-struct timeval timeval_divide(const struct timeval *t, int d) {
-    struct timeval r;
-    r.tv_sec = ((t->tv_sec * 1000000 + t->tv_usec) / d) / 1000000;
-    r.tv_usec = ((t->tv_sec * 1000000 + t->tv_usec) / d) % 1000000;
+struct timespec timespec_from_ms(int ms) {
+    struct timespec r;
+    r.tv_sec = ms / 1000000;
+    r.tv_nsec = (ms % 1000000) * 1000000;
     return r;
 }
 
-struct timeval timeval_from_ms(int ms) {
-    struct timeval r;
-    r.tv_sec = ms / 1000;
-    r.tv_usec = (ms % 1000) * 1000;
-    return r;
+int timespec_to_ms(const struct timespec *t) {
+    return t->tv_sec * 1000000 + (t->tv_nsec + 500000) / 1000000;
 }
 
-int timeval_to_ms(const struct timeval *t) {
-    return t->tv_sec * 1000 + (t->tv_usec + 500) / 1000;
-}
-
-int timeval_cmp(const struct timeval *a, const struct timeval *b) {
+int timespec_cmp(const struct timespec *a, const struct timespec *b) {
     if (a->tv_sec > b->tv_sec) return 1;
     if (a->tv_sec < b->tv_sec) return -1;
-    if (a->tv_usec > b->tv_usec) return 1;
-    if (a->tv_usec < b->tv_usec) return -1;
+    if (a->tv_nsec > b->tv_nsec) return 1;
+    if (a->tv_nsec < b->tv_nsec) return -1;
     return 0; // equal
 }
 
-char *timeval_to_str(const struct timeval *t) {
+char *timespec_to_str(const struct timespec *t) {
     uint32_t strlen = 64;
     char *str = malloc(strlen);
     memset(str, 0, strlen);
-    uint32_t usec = (t->tv_sec * 1000000) + t->tv_usec;
-    snprintf(str, strlen, "%d.%03d", usec / 1000, usec % 1000);
+    long nsec = (t->tv_sec * 1000000000) + t->tv_nsec;
+    snprintf(str, strlen, "%ld.%03ld", nsec / 1000000, nsec % 1000000);
     return str;
 }
 
-char *timeval_diff_to_str(const struct timeval *a, const struct timeval *b) {
-    struct timeval c = timeval_diff(a, b);
-    return timeval_to_str(&c);
+char *timespec_diff_to_str(const struct timespec *a, const struct timespec *b) {
+    struct timespec c = timespec_diff(a, b);
+    return timespec_to_str(&c);
 }
 
-char *timeval_diff_now_to_str(const struct timeval *t) {
-    struct timeval r = timeval_diff_now(t);
-    return timeval_to_str(&r);
+char *timespec_diff_now_to_str(const struct timespec *t) {
+    struct timespec r = timespec_diff_now(t);
+    return timespec_to_str(&r);
 }

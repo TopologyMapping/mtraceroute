@@ -30,7 +30,7 @@
 #define __LINK_H__
 
 #include <stdint.h>
-#include <sys/time.h>
+#include <time.h>
 
 struct link {
     int fd;
@@ -41,6 +41,6 @@ struct link {
 
 struct link *link_open(int if_index);
 void link_close(struct link *l);
-int link_write(struct link *l, uint8_t *buf, uint32_t len, struct timeval *t);
+int link_write(struct link *l, uint8_t *buf, uint32_t len, struct timespec *t);
 
 #endif // __LINK_H__

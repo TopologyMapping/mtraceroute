@@ -68,10 +68,10 @@ struct flow_ttl {
 
 struct next_hop {
     char *addr;
-    struct timeval rtt;
+    struct timespec rtt;
 };
 
-static struct next_hop *next_hop_create(char *addr, struct timeval rtt) {
+static struct next_hop *next_hop_create(char *addr, struct timespec rtt) {
     struct next_hop *nh = malloc(sizeof(*nh));
     memset(nh, 0, sizeof(*nh));
     nh->addr = addr;
@@ -380,7 +380,7 @@ static struct list *get_flows(struct mda *mda, int ttl, char *resp) {
 }
 
 static void mda_read_response(struct mda *m, struct probe *p, char **src_addr,
-                              struct timeval *rtt) {
+                              struct timespec *rtt) {
 
     int ttl = 0;
     int flow_id = 0;
@@ -425,7 +425,7 @@ static void mda_read_response(struct mda *m, struct probe *p, char **src_addr,
             add_flow(m, ttl, flow_id, *src_addr, type);
 
             if (rtt != NULL) {
-                *rtt = timeval_diff(&p->response_time, &p->sent_time);
+                *rtt = timespec_diff(&p->response_time, &p->sent_time);
             }
 
         } else {
@@ -483,7 +483,7 @@ static void mda_read_response(struct mda *m, struct probe *p, char **src_addr,
             add_flow(m, ttl, flow_id, *src_addr, type);
 
             if (rtt != NULL) {
-                *rtt = timeval_diff(&p->response_time, &p->sent_time);
+                *rtt = timespec_diff(&p->response_time, &p->sent_time);
             }
 
         } else {
@@ -550,7 +550,7 @@ static int next_hops(struct mda *mda, char *addr, int ttl, struct list *flows,
     while (inter->probes->count > 0) {
         struct probe *probe = (struct probe *)list_pop(inter->probes);
         char *addr = NULL;
-        struct timeval rtt;
+        struct timespec rtt;
         mda_read_response(mda, probe, &addr, &rtt);
         struct next_hop *nh = next_hop_create(addr, rtt);
 
@@ -623,7 +623,7 @@ static void mda_print(int ttl, char *addr, struct list *nh, int per_packet) {
     struct list_item *i = NULL;
     for (i = nh->first; i != NULL; i = i->next) {
         struct next_hop *nh = (struct next_hop *)i->data;
-        char *rtt_str = timeval_to_str(&nh->rtt);
+        char *rtt_str = timespec_to_str(&nh->rtt);
         if (strcmp(nh->addr, "*") == 0) {
             printf(" *");
         } else {

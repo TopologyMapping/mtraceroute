@@ -29,7 +29,7 @@
 #ifndef __MT_H__
 #define __MT_H__
 
-#include <sys/time.h>
+#include <time.h>
 #include <net/if.h>
 #include <pcap.h>
 
@@ -48,13 +48,13 @@ struct mt {
 
     int retries;
     int probe_timeout;
-    struct timeval send_wait;
+    struct timespec send_wait;
 
     // Statistics
     int probes_count;
-    struct timeval init_time;
-    struct timeval first_probe_time;
-    struct timeval last_probe_time;
+    struct timespec init_time;
+    struct timespec first_probe_time;
+    struct timespec last_probe_time;
 };
 
 struct interface {

@@ -30,6 +30,7 @@
 #define __UTIL_H__
 
 #include <arpa/inet.h>
+#include <time.h>
 
 void print_hex(const uint8_t *buf, uint32_t len);
 int buff_cmp(const uint8_t *a, const uint8_t *b, uint32_t len);
@@ -42,14 +43,13 @@ struct sockaddr *sockaddr_copy(const struct sockaddr *sa);
 struct sockaddr *sockaddr_create(const uint8_t *addr, int family);
 struct sockaddr *sockaddr_from_str(const char *addr, int family);
 
-struct timeval timeval_diff(const struct timeval *a, const struct timeval *b);
-struct timeval timeval_diff_now(const struct timeval *t);
-struct timeval timeval_divide(const struct timeval *t, int d);
-struct timeval timeval_from_ms(int ms);
-int timeval_to_ms(const struct timeval *t);
-int timeval_cmp(const struct timeval *a, const struct timeval *b);
-char *timeval_to_str(const struct timeval *t);
-char *timeval_diff_to_str(const struct timeval *a, const struct timeval *b);
-char *timeval_diff_now_to_str(const struct timeval *t);
+struct timespec timespec_diff(const struct timespec *a, const struct timespec *b);
+struct timespec timespec_diff_now(const struct timespec *t);
+struct timespec timespec_from_ms(int ms);
+int timespec_to_ms(const struct timespec *t);
+int timespec_cmp(const struct timespec *a, const struct timespec *b);
+char *timespec_to_str(const struct timespec *t);
+char *timespec_diff_to_str(const struct timespec *a, const struct timespec *b);
+char *timespec_diff_now_to_str(const struct timespec *t);
 
 #endif // __UTIL_H__

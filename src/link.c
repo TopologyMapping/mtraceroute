@@ -57,7 +57,7 @@ void link_close(struct link *l) {
     free(l);
 }
 
-int link_write(struct link *l, uint8_t *buf, uint32_t len, struct timeval *t) {
+int link_write(struct link *l, uint8_t *buf, uint32_t len, struct timespec *t) {
     if (l == NULL) return -1;
     
     // To correct an annoying error in Valgrind
@@ -71,7 +71,7 @@ int link_write(struct link *l, uint8_t *buf, uint32_t len, struct timeval *t) {
     addr_ll->sll_ifindex  = l->if_index;
     addr_ll->sll_protocol = htons(ETH_P_ALL);
 
-    if (t != NULL) gettimeofday(t, NULL);
+    if (t != NULL) clock_gettime(CLOCK_REALTIME, t);
 
     int sent = sendto(l->fd, buf, len, 0, (struct sockaddr *)addr_ll,
                       sizeof(struct sockaddr_ll));

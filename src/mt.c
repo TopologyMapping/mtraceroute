@@ -55,18 +55,18 @@ struct probe *mt_send(struct mt *a, int if_index, const uint8_t *buf,
     list_insert(i->probes, p);
 
     if (a->probes_count > 0) {
-        struct timeval elapsed = timeval_diff_now(&a->last_probe_time);
-        if (timeval_cmp(&elapsed, &a->send_wait) == -1) {
-            struct timeval remaining = timeval_diff(&a->send_wait, &elapsed);
-            usleep(timeval_to_ms(&remaining) * 1000);
+        struct timespec elapsed = timespec_diff_now(&a->last_probe_time);
+        if (timespec_cmp(&elapsed, &a->send_wait) == -1) {
+            struct timespec remaining = timespec_diff(&a->send_wait, &elapsed);
+            usleep(timespec_to_ms(&remaining) * 1000);
         }
     }
 
     if (a->probes_count == 0) {
-        gettimeofday(&a->first_probe_time, NULL);
+        clock_gettime(CLOCK_REALTIME, &a->first_probe_time);
     }
     a->probes_count++;
-    gettimeofday(&a->last_probe_time, NULL);
+    clock_gettime(CLOCK_REALTIME, &a->last_probe_time);
     return p;
 }
 
@@ -76,7 +76,7 @@ static void mt_retry(struct mt *a, struct interface *i, struct probe *p) {
 }
 
 static void mt_receive(struct interface *i, const uint8_t *buf,
-                       uint32_t len, struct timeval ts) {
+                       uint32_t len, struct timespec ts) {
     struct list_item *it;
     for (it = i->probes->first; it != NULL; it = it->next) {
         struct probe *p = (struct probe *)it->data;
@@ -110,7 +110,10 @@ void mt_wait(struct mt *a, int if_index) {
         struct pcap_pkthdr *header;
         const u_char *pkt_data;
         if (pcap_next_ex(i->pcap_handle, &header, &pkt_data) > 0) {
-            mt_receive(i, (uint8_t *)pkt_data, header->caplen, header->ts);
+            struct timespec ts;
+            ts.tv_sec = header->ts.tv_sec;
+            ts.tv_nsec = header->ts.tv_usec * 1000;
+            mt_receive(i, (uint8_t *)pkt_data, header->caplen, ts);
         }
     }
 }
@@ -224,10 +227,10 @@ static struct mt *mt_create(int wait, int send_wait, int retries) {
     a->routes = list_create();
     a->retries = retries;
     a->probe_timeout = wait;
-    a->send_wait = timeval_from_ms(send_wait);
+    a->send_wait = timespec_from_ms(send_wait);
     a->probes_count = 0;
 
-    gettimeofday(&a->init_time, NULL);
+    clock_gettime(CLOCK_REALTIME, &a->init_time);
     memset(&a->first_probe_time, 0, sizeof(a->first_probe_time));
     memset(&a->last_probe_time, 0, sizeof(a->last_probe_time));
 
