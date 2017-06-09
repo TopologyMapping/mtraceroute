@@ -129,9 +129,17 @@ int parse_args(int argc, char **argv, struct args *args, struct xoption *opts) {
         if (next == -1 || next == '?') break;
         struct xoption *o = get_xoption(opts, next);
         if (o != NULL) {
-            if (o->fn(optarg, o->d) == -1) {
-                printf("Wrong value for argument '%c'\n", next);
-                return 1;
+            if (o->o.has_arg == no_argument) {
+                if (o->fn(NULL, NULL) == -1) {
+                    free(long_opts);
+                    return 1;
+                }
+            } else if (o->o.has_arg == required_argument) {
+                if (o->fn(optarg, o->d) == -1) {
+                    printf("Wrong value for argument '%c'\n", next);
+                    free(long_opts);
+                    return 1;
+                }
             }
         }
     }
@@ -146,6 +154,39 @@ int parse_args(int argc, char **argv, struct args *args, struct xoption *opts) {
     }
 
     return 0;
+}
+
+int show_usage() {
+    printf(
+"mtraceroute ADDRESS [-c command] [-w wait] [-z send-wait]\n"
+"\n"
+"  -c command: traceroute|ping|mda, default: traceroute\n"
+"  -w seconds to wait for answer: default: 1\n"
+"  -z milliseconds to wait between sends: default: 20\n"
+"\n"
+"  MDA: -c mda [-a confidence] [-f flow-id] [-h max-ttl]\n"
+"\n"
+"    -a confidence level in %%: 90|95|99, default: 95\n"
+"    -f what flow identifier to use, some values depends on\n"
+"       the type of the address\n"
+"       IPv4: icmp-chk, icmp-dst, udp-sport, udp-dst, tcp-sport, tcp-dst\n"
+"             Default: udp-sport\n"
+"       IPv6: icmp-chk, icmp-dst, icmp-fl, icmp-tc, udp-sport, udp-dst,\n"
+"             udp-fl, udp-tc, tcp-sport, tcp-dst, tcp-fl, tcp-tc\n"
+"             Default: udp-sport\n"
+"    -h max number of hops to probe: default: 30\n"
+"\n"
+"  TRACEROUTE: -c traceroute [-h max-ttl] [-m method] [-p probes-at-once]\n"
+"\n"
+"    -h max number of hops to probe: default: 30\n"
+"    -m method of probing: icmp|udp|tcp, default: icmp\n"
+"    -p number of probes to send at once: default: 3\n"
+"\n"
+"  PING: -c ping [-n send-probes]\n"
+"\n"
+"    -n number of probes to send: default: 5\n");
+
+    return -1;
 }
 
 struct args *get_args(int argc, char **argv) {
@@ -164,6 +205,7 @@ struct args *get_args(int argc, char **argv) {
     args->z = 20;
 
     struct xoption opts[] = {
+        {{"help",           no_argument,       NULL, 'h'}, show_usage,    NULL},
         {{"confidence",     required_argument, NULL, 'a'}, parse_conf,    &args->a},
         {{"command",        required_argument, NULL, 'c'}, parse_cmd,     &args->c},
         {{"flow-id",        required_argument, NULL, 'f'}, parse_flow_id, &args->f},
