@@ -161,6 +161,7 @@ int show_usage() {
 "mtraceroute ADDRESS [-c command] [-w wait] [-z send-wait]\n"
 "\n"
 "  -c command: traceroute|ping|mda, default: traceroute\n"
+"  -r number of retries: default: 2\n"
 "  -w seconds to wait for answer: default: 1\n"
 "  -z milliseconds to wait between sends: default: 20\n"
 "\n"

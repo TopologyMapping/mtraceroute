@@ -19,6 +19,7 @@ Linux, gcc, libpcap and root access
 mtraceroute ADDRESS [-c command] [-w wait] [-z send-wait]
 
     -c command: traceroute|ping|mda, default: traceroute
+    -r number of retries: default: 2
     -w seconds to wait for answer: default: 1
     -z milliseconds to wait between sends: default: 20
             
