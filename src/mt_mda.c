@@ -410,7 +410,7 @@ static void mda_read_response(struct mda *m, struct probe *p, char **src_addr,
         } else if (m->flow_type == FLOW_TCP_SPORT) {
 
             struct tcp_hdr *ptcp = (struct tcp_hdr *)(p->probe + tsp_pos);
-            flow_id = ntohl(ptcp->src_port) - MDA_TCP_SPORT;
+            flow_id = ntohs(ptcp->src_port) - MDA_TCP_SPORT;
 
         }
 
