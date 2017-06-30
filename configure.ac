@@ -20,6 +20,7 @@ AC_CHECK_HEADERS([sys/resource.h], [], [exit 1;])
 AC_CHECK_HEADERS([asm/types.h], [], [exit 1;])
 AC_CHECK_HEADERS([linux/rtnetlink.h], [], [exit 1;])
 AC_CHECK_HEADERS([linux/netlink.h], [], [exit 1;])
+AC_CHECK_LIB([rt], [clock_gettime], [], [exit 1;])
 
 AC_CHECK_FUNCS([strchr strdup strerror], [], [exit 1;])
 AC_CHECK_FUNCS([memset], [], [exit 1;])
