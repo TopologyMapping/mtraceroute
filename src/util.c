@@ -179,13 +179,13 @@ struct timespec timespec_diff_now(const struct timespec *t) {
 
 struct timespec timespec_from_ms(int ms) {
     struct timespec r;
-    r.tv_sec = ms / 1000000;
-    r.tv_nsec = (ms % 1000000) * 1000000;
+    r.tv_sec = ms / 1000;
+    r.tv_nsec = (ms % 1000) * 1000000;
     return r;
 }
 
 int timespec_to_ms(const struct timespec *t) {
-    return t->tv_sec * 1000000 + (t->tv_nsec + 500000) / 1000000;
+    return t->tv_sec * 1000 + (t->tv_nsec + 500000) / 1000000;
 }
 
 int timespec_cmp(const struct timespec *a, const struct timespec *b) {
