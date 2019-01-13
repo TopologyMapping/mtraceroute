@@ -520,6 +520,13 @@ static int is_per_packet(struct mda *mda, int flow_id, int ttl, int n) {
         probe_destroy(probe);
     }
 
+    struct list_item *it = NULL;
+    for (it = nh->first; it != NULL; it = it->next) {
+        free(it->data);
+    }
+
+    list_destroy(nh);
+
     return found;
 }
 
