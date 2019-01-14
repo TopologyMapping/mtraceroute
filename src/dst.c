@@ -47,7 +47,19 @@ struct dst *dst_create(struct mt *a, struct addr *ip_dst) {
 
     struct neighbor *n = mt_get_neighbor(a, r->gateway, r->if_index);
 
+    if (n == NULL) {
+        printf("mt_get_neighbor failed\n");
+        free(d);
+        return NULL;
+    }
+
     struct interface *i = mt_get_interface(a, r->if_index);
+
+    if (i == NULL) {
+        printf("mt_get_interface failed\n");
+        free(d);
+        return NULL;
+    }
 
     struct addr *if_ip = NULL;
     if (ip_dst->type == ADDR_IPV4) {
@@ -71,7 +83,13 @@ struct dst *dst_create_from_str(struct mt *a, const char *addr_str) {
     if (type != ADDR_IPV4 && type != ADDR_IPV6) return NULL;
 
     struct addr *addr = addr_create_from_str(type, addr_str);
-    return dst_create(a, addr);
+
+    struct dst *dst = dst_create(a, addr);
+    if (dst == NULL) {
+        addr_destroy(addr);
+    }
+
+    return dst;
 }
 
 void dst_destroy(struct dst *d) {
