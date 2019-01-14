@@ -286,9 +286,9 @@ int main(int argc, char *argv[]) {
     if (args->c == CMD_PING) {
         mt_ping(a, d, args->n);
     } else if (args->c == CMD_MDA) {
-        mt_mda(a, d, args->a, args->f, args->h);
+        mt_mda(a, d, args->a, args->f, args->t);
     } else if (args->c == CMD_TRACEROUTE) {
-        mt_traceroute(a, d, args->m, args->h, args->p);
+        mt_traceroute(a, d, args->m, args->t, args->p);
     }
 
     dst_destroy(d);

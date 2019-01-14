@@ -54,7 +54,7 @@ struct args {
     int a; // confidence
     int c; // command
     int f; // flow-id
-    int h; // max-ttl
+    int t; // max-ttl
     int m; // method
     int n; // send-probes
     int p; // probes-at-once
