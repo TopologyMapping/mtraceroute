@@ -165,7 +165,7 @@ int show_usage() {
 "  -w seconds to wait for answer: default: 1\n"
 "  -z milliseconds to wait between sends: default: 20\n"
 "\n"
-"  MDA: -c mda [-a confidence] [-f flow-id] [-h max-ttl]\n"
+"  MDA: -c mda [-a confidence] [-f flow-id] [-t max-ttl]\n"
 "\n"
 "    -a confidence level in %%: 90|95|99, default: 95\n"
 "    -f what flow identifier to use, some values depends on\n"
@@ -175,11 +175,11 @@ int show_usage() {
 "       IPv6: icmp-chk, icmp-dst, icmp-fl, icmp-tc, udp-sport, udp-dst,\n"
 "             udp-fl, udp-tc, tcp-sport, tcp-dst, tcp-fl, tcp-tc\n"
 "             Default: udp-sport\n"
-"    -h max number of hops to probe: default: 30\n"
+"    -t max number of hops to probe: default: 30\n"
 "\n"
-"  TRACEROUTE: -c traceroute [-h max-ttl] [-m method] [-p probes-at-once]\n"
+"  TRACEROUTE: -c traceroute [-t max-ttl] [-m method] [-p probes-at-once]\n"
 "\n"
-"    -h max number of hops to probe: default: 30\n"
+"    -t max number of hops to probe: default: 30\n"
 "    -m method of probing: icmp|udp|tcp, default: icmp\n"
 "    -p number of probes to send at once: default: 3\n"
 "\n"
@@ -197,7 +197,7 @@ struct args *get_args(int argc, char **argv) {
     args->a = 95;
     args->c = CMD_TRACEROUTE;
     args->f = FLOW_UDP_SPORT;
-    args->h = 30;
+    args->t = 30;
     args->m = METHOD_ICMP;
     args->n = 5;
     args->p = 3;
@@ -210,7 +210,7 @@ struct args *get_args(int argc, char **argv) {
         {{"confidence",     required_argument, NULL, 'a'}, parse_conf,    &args->a},
         {{"command",        required_argument, NULL, 'c'}, parse_cmd,     &args->c},
         {{"flow-id",        required_argument, NULL, 'f'}, parse_flow_id, &args->f},
-        {{"max-ttl",        required_argument, NULL, 'h'}, parse_int,     &args->h},
+        {{"max-ttl",        required_argument, NULL, 't'}, parse_int,     &args->t},
         {{"method",         required_argument, NULL, 'm'}, parse_method,  &args->m},
         {{"send-probes",    required_argument, NULL, 'n'}, parse_int,     &args->n},
         {{"probes-at-once", required_argument, NULL, 'p'}, parse_int,     &args->p},

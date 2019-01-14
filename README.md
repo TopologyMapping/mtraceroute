@@ -23,7 +23,7 @@ mtraceroute ADDRESS [-c command] [-w wait] [-z send-wait]
     -w seconds to wait for answer: default: 1
     -z milliseconds to wait between sends: default: 20
             
-    MDA: -c mda [-a confidence] [-f flow-id] [-h max-ttl]
+    MDA: -c mda [-a confidence] [-f flow-id] [-t max-ttl]
 
         -a confidence level in %: 90|95|99, default: 95
         -f what flow identifier to use, some values depends on
@@ -33,11 +33,11 @@ mtraceroute ADDRESS [-c command] [-w wait] [-z send-wait]
            IPv6: icmp-chk, icmp-dst, icmp-fl, icmp-tc, udp-sport, udp-dst,
                  udp-fl, udp-tc, tcp-sport, tcp-dst, tcp-fl, tcp-tc
                  Default: udp-sport
-        -h max number of hops to probe: default: 30
+        -t max number of hops to probe: default: 30
 
-    TRACEROUTE: -c traceroute [-h max-ttl] [-m method] [-p probes-at-once]
+    TRACEROUTE: -c traceroute [-t max-ttl] [-m method] [-p probes-at-once]
 
-        -h max number of hops to probe: default: 30
+        -t max number of hops to probe: default: 30
         -m method of probing: icmp|udp|tcp, default: icmp
         -p number of probes to send at once: default: 3
 
