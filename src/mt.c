@@ -278,8 +278,9 @@ int main(int argc, char *argv[]) {
     struct dst *d = dst_create_from_str(a, args->dst);
 
     if (d == NULL) {
-        printf("Wrong address.\n");
+        printf("check the destination address\n");
         mt_destroy(a);
+        free(args);
         return 1;
     }
 
